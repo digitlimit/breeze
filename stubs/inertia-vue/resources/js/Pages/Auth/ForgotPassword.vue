@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -6,9 +6,18 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
+// ts-begin
+defineProps<{
+    status?: string;
+}>();
+// ts-end
+// js-begin
 defineProps({
-    status: String,
+    status: {
+        type: String,
+    },
 });
+// js-end
 
 const form = useForm({
     email: '',

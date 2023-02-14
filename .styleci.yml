@@ -4,5 +4,10 @@ js:
   finder:
     not-name:
       - vite.config.js
+ts:
+  finder:
+    name:
+      - "*.ts"
+      - "*.tsx"
 css: true
 vue: true

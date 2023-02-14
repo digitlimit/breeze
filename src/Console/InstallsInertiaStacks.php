@@ -22,7 +22,7 @@ trait InstallsInertiaStacks
         // NPM Packages...
         $this->updateNodePackages(function ($packages) {
             return [
-                '@inertiajs/vue3' => '^1.0.0',
+                '@inertiajs/vue3' => '^1.0.2',
                 '@tailwindcss/forms' => '^0.5.3',
                 '@vitejs/plugin-vue' => '^4.0.0',
                 'autoprefixer' => '^10.4.12',
@@ -86,12 +86,36 @@ trait InstallsInertiaStacks
         copy(__DIR__.'/../../stubs/default/resources/css/app.css', resource_path('css/app.css'));
         copy(__DIR__.'/../../stubs/default/postcss.config.js', base_path('postcss.config.js'));
         copy(__DIR__.'/../../stubs/inertia-common/tailwind.config.js', base_path('tailwind.config.js'));
-        copy(__DIR__.'/../../stubs/inertia-common/jsconfig.json', base_path('jsconfig.json'));
         copy(__DIR__.'/../../stubs/inertia-vue/vite.config.js', base_path('vite.config.js'));
-        copy(__DIR__.'/../../stubs/inertia-vue/resources/js/app.js', resource_path('js/app.js'));
+        copy(__DIR__.'/../../stubs/inertia-vue/resources/js/app.ts', resource_path('js/app.ts'));
 
         if ($this->option('ssr')) {
             $this->installInertiaVueSsrStack();
+        }
+
+        if ($this->option('typescript')) {
+            $this->updateNodePackages(function ($packages) {
+                return [
+                    '@types/ziggy-js' => '^1.3.2',
+                    'typescript' => '^4.9.4',
+                    'vue-tsc' => '^1.0.24',
+                ] + $packages;
+            });
+            (new Filesystem)->ensureDirectoryExists(resource_path('js/types'));
+            (new Filesystem)->copyDirectory(__DIR__.'/../../stubs/inertia-common/resources/js/types', resource_path('js/types'));
+            (new Filesystem)->copyDirectory(__DIR__.'/../../stubs/inertia-vue/resources/js/types', resource_path('js/types'));
+            copy(__DIR__.'/../../stubs/inertia-vue/tsconfig.json', base_path('tsconfig.json'));
+            if (file_exists(resource_path('js/bootstrap.js'))) {
+                rename(resource_path('js/bootstrap.js'), resource_path('js/bootstrap.ts'));
+            }
+            $this->replaceInFile('"vite build', '"vue-tsc && vite build', base_path('package.json'));
+            $this->removeJavaScript();
+        } else {
+            copy(__DIR__.'/../../stubs/inertia-common/jsconfig.json', base_path('jsconfig.json'));
+            $this->renameFileExtensions('ts', 'js', resource_path('js'));
+            $this->replaceInFile('.ts', '.js', base_path('vite.config.js'));
+            $this->replaceInFile('.ts', '.js', resource_path('views/app.blade.php'));
+            $this->removeTypeScript();
         }
 
         $this->components->info('Installing and building Node dependencies.');
@@ -121,9 +145,9 @@ trait InstallsInertiaStacks
             ] + $packages;
         });
 
-        copy(__DIR__.'/../../stubs/inertia-vue/resources/js/ssr.js', resource_path('js/ssr.js'));
+        copy(__DIR__.'/../../stubs/inertia-vue/resources/js/ssr.ts', resource_path('js/ssr.ts'));
         $this->replaceInFile("input: 'resources/js/app.js',", "input: 'resources/js/app.js',".PHP_EOL."            ssr: 'resources/js/ssr.js',", base_path('vite.config.js'));
-        $this->replaceInFile('vite build', 'vite build && vite build --ssr', base_path('package.json'));
+        $this->replaceInFile('"vite build', '"vite build && vite build --ssr', base_path('package.json'));
         $this->replaceInFile('/node_modules', '/bootstrap/ssr'.PHP_EOL.'/node_modules', base_path('.gitignore'));
     }
 
@@ -135,7 +159,7 @@ trait InstallsInertiaStacks
     protected function installInertiaReactStack()
     {
         // Install Inertia...
-        if (! $this->requireComposerPackages(['inertiajs/inertia-laravel:^0.6.3', 'laravel/sanctum:^3.2', 'tightenco/ziggy:^1.0'])) {
+        if (! $this->requireComposerPackages(['inertiajs/inertia-laravel:^0.6.8', 'laravel/sanctum:^3.2', 'tightenco/ziggy:^1.0'])) {
             return 1;
         }
 
@@ -143,7 +167,7 @@ trait InstallsInertiaStacks
         $this->updateNodePackages(function ($packages) {
             return [
                 '@headlessui/react' => '^1.4.2',
-                '@inertiajs/react' => '^1.0.0',
+                '@inertiajs/react' => '^1.0.2',
                 '@tailwindcss/forms' => '^0.5.3',
                 '@vitejs/plugin-react' => '^3.0.0',
                 'autoprefixer' => '^10.4.12',
@@ -183,8 +207,8 @@ trait InstallsInertiaStacks
         if (! $this->option('dark')) {
             $this->removeDarkClasses((new Finder)
                 ->in(resource_path('js'))
-                ->name('*.jsx')
-                ->notName('Welcome.jsx')
+                ->name('*.tsx')
+                ->notName('Welcome.tsx')
             );
         }
 
@@ -197,26 +221,54 @@ trait InstallsInertiaStacks
         copy(__DIR__.'/../../stubs/inertia-common/routes/auth.php', base_path('routes/auth.php'));
 
         // "Dashboard" Route...
-        $this->replaceInFile('/home', '/dashboard', resource_path('js/Pages/Welcome.jsx'));
-        $this->replaceInFile('Home', 'Dashboard', resource_path('js/Pages/Welcome.jsx'));
+        $this->replaceInFile('/home', '/dashboard', resource_path('js/Pages/Welcome.tsx'));
+        $this->replaceInFile('Home', 'Dashboard', resource_path('js/Pages/Welcome.tsx'));
         $this->replaceInFile('/home', '/dashboard', app_path('Providers/RouteServiceProvider.php'));
 
         // Tailwind / Vite...
         copy(__DIR__.'/../../stubs/default/resources/css/app.css', resource_path('css/app.css'));
         copy(__DIR__.'/../../stubs/default/postcss.config.js', base_path('postcss.config.js'));
         copy(__DIR__.'/../../stubs/inertia-common/tailwind.config.js', base_path('tailwind.config.js'));
-        copy(__DIR__.'/../../stubs/inertia-common/jsconfig.json', base_path('jsconfig.json'));
         copy(__DIR__.'/../../stubs/inertia-react/vite.config.js', base_path('vite.config.js'));
-        copy(__DIR__.'/../../stubs/inertia-react/resources/js/app.jsx', resource_path('js/app.jsx'));
+        copy(__DIR__.'/../../stubs/inertia-react/resources/js/app.tsx', resource_path('js/app.tsx'));
 
         if (file_exists(resource_path('js/app.js'))) {
             unlink(resource_path('js/app.js'));
         }
 
-        $this->replaceInFile('.vue', '.jsx', base_path('tailwind.config.js'));
-
         if ($this->option('ssr')) {
             $this->installInertiaReactSsrStack();
+        }
+
+        if ($this->option('typescript')) {
+            $this->updateNodePackages(function ($packages) {
+                return [
+                    '@types/node' => '^18.13.0',
+                    '@types/react' => '^18.0.28',
+                    '@types/react-dom' => '^18.0.10',
+                    '@types/ziggy-js' => '^1.3.2',
+                    'typescript' => '^4.9.4',
+                ] + $packages;
+            });
+            (new Filesystem)->ensureDirectoryExists(resource_path('js/types'));
+            (new Filesystem)->copyDirectory(__DIR__.'/../../stubs/inertia-common/resources/js/types', resource_path('js/types'));
+            (new Filesystem)->copyDirectory(__DIR__.'/../../stubs/inertia-react/resources/js/types', resource_path('js/types'));
+            copy(__DIR__.'/../../stubs/inertia-react/tsconfig.json', base_path('tsconfig.json'));
+            if (file_exists(resource_path('js/bootstrap.js'))) {
+                rename(resource_path('js/bootstrap.js'), resource_path('js/bootstrap.ts'));
+            }
+            $this->replaceInFile('.vue', '.tsx', base_path('tailwind.config.js'));
+            $this->replaceInFile('"vite build', '"tsc && vite build', base_path('package.json'));
+            $this->removeJavaScript();
+        } else {
+            copy(__DIR__.'/../../stubs/inertia-common/jsconfig.json', base_path('jsconfig.json'));
+            $this->renameFileExtensions('tsx', 'jsx', resource_path('js'));
+            $this->replaceInFile('.vue', '.jsx', base_path('tailwind.config.js'));
+            $this->replaceInFile('.tsx', '.jsx', base_path('vite.config.js'));
+            $this->replaceInFile('.tsx', '.jsx', resource_path('js/app.jsx'));
+            $this->replaceInFile('.tsx', '.jsx', resource_path('js/ssr.jsx'));
+            $this->replaceInFile('.tsx', '.jsx', resource_path('views/app.blade.php'));
+            $this->removeTypeScript();
         }
 
         $this->components->info('Installing and building Node dependencies.');
@@ -240,9 +292,69 @@ trait InstallsInertiaStacks
      */
     protected function installInertiaReactSsrStack()
     {
-        copy(__DIR__.'/../../stubs/inertia-react/resources/js/ssr.jsx', resource_path('js/ssr.jsx'));
-        $this->replaceInFile("input: 'resources/js/app.jsx',", "input: 'resources/js/app.jsx',".PHP_EOL."            ssr: 'resources/js/ssr.jsx',", base_path('vite.config.js'));
+        copy(__DIR__.'/../../stubs/inertia-react/resources/js/ssr.tsx', resource_path('js/ssr.tsx'));
+        $this->replaceInFile("input: 'resources/js/app.tsx',", "input: 'resources/js/app.tsx',".PHP_EOL."            ssr: 'resources/js/ssr.tsx',", base_path('vite.config.js'));
         $this->replaceInFile('vite build', 'vite build && vite build --ssr', base_path('package.json'));
         $this->replaceInFile('/node_modules', '/bootstrap/ssr'.PHP_EOL.'/node_modules', base_path('.gitignore'));
+    }
+
+    /**
+     * Remove TypeScript code from the project.
+     *
+     * @return void
+     */
+    protected function removeTypeScript()
+    {
+        $finder = (new Finder)
+                ->in(resource_path('js'))
+                ->name('/\.(jsx?|vue)/');
+
+        foreach ($finder as $file) {
+            $contents = $file->getContents();
+
+            // Remove lines containing the line-wise `// ts-only` marker.
+            $contents = preg_replace('/^.*\/\/\s?ts-only$(?:\r\n|\n)?/m', '', $contents);
+
+            // Remove inline `/* ts-begin */ ... /* ts-end */` blocks.
+            $contents = preg_replace('/\/\*\s?ts-begin.*?ts-end\s?\*\//s', '', $contents);
+
+            // Remove line-wise `// ts-begin ... // ts-end` blocks.
+            $contents = preg_replace('/\/\/\s?ts-begin.*?\/\/\s?ts-end(?:\r\n|\n)?/s', '', $contents);
+
+            // Remove lines containing the line-wise `// js-(begin|end)` markers.
+            $contents = preg_replace('/^.*\/\/\s?js-(begin|end)$(?:\r\n|\n)?/m', '', $contents);
+
+            // Remove Vue component `lang="ts"` attribute
+            $contents = str_replace(' lang="ts"', '', $contents);
+
+            file_put_contents($file->getPathname(), $contents);
+        }
+    }
+
+    /**
+     * Remove JavaScript-only code from the project.
+     *
+     * @return void
+     */
+    protected function removeJavaScript()
+    {
+        $finder = (new Finder)
+                ->in(resource_path('js'))
+                ->name('/\.(tsx?|vue)/');
+
+        foreach ($finder as $file) {
+            $contents = $file->getContents();
+
+            // Remove line-wise `// js-begin ... // js-end` blocks
+            $contents = preg_replace('/\/\/ js-begin.*?\/\/ js-end(?:\r\n|\n)?/s', '', $contents);
+
+            // Remove line-wise `// ts-(only|begin|end)` markers.
+            $contents = preg_replace('/ *\/\/\s?ts-(only|begin|end)/', '', $contents);
+
+            // Remove /* ts-begin */ and /* ts-end */ markers.
+            $contents = preg_replace('/\/\*\s?ts-(begin|end)\s?\*\//', '', $contents);
+
+            file_put_contents($file->getPathname(), $contents);
+        }
     }
 }

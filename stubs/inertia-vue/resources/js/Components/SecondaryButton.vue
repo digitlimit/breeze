@@ -1,10 +1,22 @@
-<script setup>
+<script setup lang="ts">
+// ts-begin
+withDefaults(
+    defineProps<{
+        type?: 'button' | 'submit' | 'reset';
+    }>(),
+    {
+        type: 'button',
+    }
+);
+// ts-end
+// js-begin
 defineProps({
     type: {
         type: String,
         default: 'button',
     },
 });
+// js-end
 </script>
 
 <template>

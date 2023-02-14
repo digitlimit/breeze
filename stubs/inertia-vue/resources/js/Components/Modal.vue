@@ -1,6 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, watch } from 'vue';
 
+// ts-begin
+const props = withDefaults(
+    defineProps<{
+        show?: boolean;
+        maxWidth: '2xl';
+        closeable?: boolean;
+    }>(),
+    {
+        show: false,
+        maxWidth: '2xl',
+        closeable: true,
+    }
+);
+// ts-end
+// js-begin
 const props = defineProps({
     show: {
         type: Boolean,
@@ -15,6 +30,7 @@ const props = defineProps({
         default: true,
     },
 });
+// js-end
 
 const emit = defineEmits(['close']);
 
@@ -24,7 +40,7 @@ watch(
         if (props.show) {
             document.body.style.overflow = 'hidden';
         } else {
-            document.body.style.overflow = null;
+            document.body.style.overflow = 'visible';
         }
     }
 );
@@ -35,7 +51,7 @@ const close = () => {
     }
 };
 
-const closeOnEscape = (e) => {
+const closeOnEscape = (e/* ts-begin */: KeyboardEvent/* ts-end */) => {
     if (e.key === 'Escape' && props.show) {
         close();
     }
@@ -45,7 +61,7 @@ onMounted(() => document.addEventListener('keydown', closeOnEscape));
 
 onUnmounted(() => {
     document.removeEventListener('keydown', closeOnEscape);
-    document.body.style.overflow = null;
+    document.body.style.overflow = 'visible';
 });
 
 const maxWidthClass = computed(() => {

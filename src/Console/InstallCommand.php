@@ -26,6 +26,7 @@ class InstallCommand extends Command
                             {--inertia : Indicate that the Vue Inertia stack should be installed (Deprecated)}
                             {--pest : Indicate that Pest should be installed}
                             {--ssr : Indicates if Inertia SSR support should be installed}
+                            {--typescript : Indicates if TypeScript is preferred for the Inertia stack (Experimental)}
                             {--composer=global : Absolute path to the Composer binary which should be used to install packages}';
 
     /**
@@ -86,6 +87,8 @@ class InstallCommand extends Command
         $input->setOption('dark', $this->components->confirm('Would you like to install dark mode support?'));
 
         if (in_array($input->getArgument('stack'), ['vue', 'react'])) {
+            $input->setOption('typescript', $this->components->confirm('Would you like TypeScript support? (Experimental)'));
+
             $input->setOption('ssr', $this->components->confirm('Would you like to install Inertia SSR support?'));
         }
 
@@ -307,6 +310,22 @@ class InstallCommand extends Command
     {
         foreach ($finder as $file) {
             file_put_contents($file->getPathname(), preg_replace('/\sdark:[^\s"\']+/', '', $file->getContents()));
+        }
+    }
+
+    /**
+     * Rename file extensions in the given path.
+     *
+     * @return void
+     */
+    protected function renameFileExtensions($old, $new, $path)
+    {
+        $files = (new Finder)
+            ->in($path)
+            ->name("*.{$old}");
+
+        foreach ($files as $file) {
+            rename($file->getPathname(), preg_replace("/\.{$old}$/", ".{$new}", $file->getPathname()));
         }
     }
 }

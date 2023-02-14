@@ -1,5 +1,16 @@
-<script setup>
-defineProps(['value']);
+<script setup lang="ts">
+// ts-begin
+defineProps<{
+    value?: string;
+}>();
+// ts-end
+// js-begin
+defineProps({
+    value: {
+        type: String,
+    },
+});
+// js-end
 </script>
 
 <template>
